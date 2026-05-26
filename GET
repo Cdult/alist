@@ -1,0 +1,5 @@
+api.GET("/auth/register", handles.Register)
+	auth.GET("/me", handles.CurrentUser)
+	auth.GET("/me/update", handles.UpdateCurrent)
+	auth.GET("/me/sshkey/list", handles.ListMyPublicKey)
+	auth.GET("/me/sshkey/add", handles.AddMyPublicKey
