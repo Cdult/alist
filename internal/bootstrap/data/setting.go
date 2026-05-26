@@ -91,6 +91,7 @@ func InitialSettings() []model.SettingItem {
 	} else {
 		token = random.Token()
 	}
+	defaultRoleID := strconv.Itoa(model.GUEST)
 	initialSettingItems = []model.SettingItem{
 		// site settings
 		{Key: conf.VERSION, Value: conf.Version, Type: conf.TypeString, Group: model.SITE, Flag: model.READONLY},
@@ -99,10 +100,15 @@ func InitialSettings() []model.SettingItem {
 		{Key: conf.SiteTitle, Value: "AList", Type: conf.TypeString, Group: model.SITE},
 		{Key: conf.Announcement, Value: "### repo\nhttps://github.com/alist-org/alist", Type: conf.TypeText, Group: model.SITE},
 		{Key: "pagination_type", Value: "all", Type: conf.TypeSelect, Options: "all,pagination,load_more,auto_load_more", Group: model.SITE},
-		{Key: "default_page_size", Value: "30", Type: conf.TypeNumber, Group: model.SITE},
+		{Key: "default_page_size", Value: "50", Type: conf.TypeNumber, Group: model.SITE},
 		{Key: conf.AllowIndexed, Value: "false", Type: conf.TypeBool, Group: model.SITE},
 		{Key: conf.AllowMounted, Value: "true", Type: conf.TypeBool, Group: model.SITE},
 		{Key: conf.RobotsTxt, Value: "User-agent: *\nAllow: /", Type: conf.TypeText, Group: model.SITE},
+		{Key: conf.AllowRegister, Value: "false", Type: conf.TypeBool, Group: model.SITE},
+		{Key: conf.DefaultRole, Value: defaultRoleID, Type: conf.TypeSelect, Group: model.SITE},
+		// newui settings
+		{Key: conf.UseNewui, Value: "false", Type: conf.TypeBool, Group: model.SITE},
+		{Key: conf.FrontendRememberSort, Value: "false", Type: conf.TypeBool, Group: model.SITE, Help: "Persist frontend list sorting in the browser. When disabled, backend/driver order is used until the user sorts manually in the current session."},
 		// style settings
 		{Key: conf.Logo, Value: "https://cdn.jsdelivr.net/gh/alist-org/logo@main/logo.svg", Type: conf.TypeText, Group: model.STYLE},
 		{Key: conf.Favicon, Value: "https://cdn.jsdelivr.net/gh/alist-org/logo@main/logo.svg", Type: conf.TypeString, Group: model.STYLE},
@@ -141,6 +147,7 @@ func InitialSettings() []model.SettingItem {
 		{Key: "audio_cover", Value: "https://jsd.nn.ci/gh/alist-org/logo@main/logo.svg", Type: conf.TypeString, Group: model.PREVIEW},
 		{Key: conf.AudioAutoplay, Value: "true", Type: conf.TypeBool, Group: model.PREVIEW},
 		{Key: conf.VideoAutoplay, Value: "true", Type: conf.TypeBool, Group: model.PREVIEW},
+		{Key: conf.ThumbnailSize, Value: "144", Type: conf.TypeNumber, Group: model.PREVIEW, Help: "Thumbnail width in pixels. Height is scaled proportionally."},
 		{Key: conf.PreviewArchivesByDefault, Value: "true", Type: conf.TypeBool, Group: model.PREVIEW},
 		{Key: conf.ReadMeAutoRender, Value: "true", Type: conf.TypeBool, Group: model.PREVIEW},
 		{Key: conf.FilterReadMeScripts, Value: "true", Type: conf.TypeBool, Group: model.PREVIEW},
@@ -160,6 +167,10 @@ func InitialSettings() []model.SettingItem {
 		{Key: conf.ForwardDirectLinkParams, Value: "false", Type: conf.TypeBool, Group: model.GLOBAL},
 		{Key: conf.IgnoreDirectLinkParams, Value: "sign,alist_ts", Type: conf.TypeString, Group: model.GLOBAL},
 		{Key: conf.WebauthnLoginEnabled, Value: "false", Type: conf.TypeBool, Group: model.GLOBAL, Flag: model.PUBLIC},
+		{Key: conf.MaxDevices, Value: "0", Type: conf.TypeNumber, Group: model.GLOBAL},
+		{Key: conf.DeviceEvictPolicy, Value: "deny", Type: conf.TypeSelect, Options: "deny,evict_oldest", Group: model.GLOBAL},
+		{Key: conf.DeviceSessionTTL, Value: "86400", Type: conf.TypeNumber, Group: model.GLOBAL},
+		{Key: conf.MetaNotFoundCacheExpire, Value: "60", Type: conf.TypeNumber, Group: model.GLOBAL, Flag: model.PRIVATE, Help: "Negative cache expiration for missing meta records, in seconds. Set 0 to disable."},
 
 		// single settings
 		{Key: conf.Token, Value: token, Type: conf.TypeString, Group: model.SINGLE, Flag: model.PRIVATE},
@@ -210,6 +221,21 @@ func InitialSettings() []model.SettingItem {
 		{Key: conf.FTPImplicitTLS, Value: "false", Type: conf.TypeBool, Group: model.FTP, Flag: model.PRIVATE},
 		{Key: conf.FTPTLSPrivateKeyPath, Value: "", Type: conf.TypeString, Group: model.FTP, Flag: model.PRIVATE},
 		{Key: conf.FTPTLSPublicCertPath, Value: "", Type: conf.TypeString, Group: model.FTP, Flag: model.PRIVATE},
+
+		// frp settings
+		{Key: conf.FRPEnabled, Value: "false", Type: conf.TypeBool, Group: model.FRP, Flag: model.PRIVATE},
+		{Key: conf.FRPServerAddr, Value: "", Type: conf.TypeString, Group: model.FRP, Flag: model.PRIVATE},
+		{Key: conf.FRPServerPort, Value: "7000", Type: conf.TypeNumber, Group: model.FRP, Flag: model.PRIVATE},
+		{Key: conf.FRPAuthToken, Value: "", Type: conf.TypeString, Group: model.FRP, Flag: model.PRIVATE},
+		{Key: conf.FRPProxyName, Value: "alist", Type: conf.TypeString, Group: model.FRP, Flag: model.PRIVATE},
+		{Key: conf.FRPProxyType, Value: "http", Type: conf.TypeSelect, Options: "http,https,tcp,stcp", Group: model.FRP, Flag: model.PRIVATE},
+		{Key: conf.FRPCustomDomain, Value: "", Type: conf.TypeString, Group: model.FRP, Flag: model.PRIVATE},
+		{Key: conf.FRPSubdomain, Value: "", Type: conf.TypeString, Group: model.FRP, Flag: model.PRIVATE},
+		{Key: conf.FRPRemotePort, Value: "0", Type: conf.TypeNumber, Group: model.FRP, Flag: model.PRIVATE},
+		{Key: conf.FRPLocalPort, Value: "5244", Type: conf.TypeNumber, Group: model.FRP, Flag: model.PRIVATE},
+		{Key: conf.FRPTLSEnable, Value: "false", Type: conf.TypeBool, Group: model.FRP, Flag: model.PRIVATE},
+		{Key: conf.FRPSTCPSecretKey, Value: "", Type: conf.TypeString, Group: model.FRP, Flag: model.PRIVATE, Help: "Required for stcp proxy type"},
+		{Key: conf.FRPStatus, Value: "stopped", Type: conf.TypeString, Group: model.FRP, Flag: model.READONLY},
 
 		// traffic settings
 		{Key: conf.TaskOfflineDownloadThreadsNum, Value: strconv.Itoa(conf.Conf.Tasks.Download.Workers), Type: conf.TypeNumber, Group: model.TRAFFIC, Flag: model.PRIVATE},

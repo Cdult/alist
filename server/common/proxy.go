@@ -13,6 +13,7 @@ import (
 
 	"github.com/alist-org/alist/v3/internal/model"
 	"github.com/alist-org/alist/v3/internal/net"
+	"github.com/alist-org/alist/v3/internal/sign"
 	"github.com/alist-org/alist/v3/internal/stream"
 	"github.com/alist-org/alist/v3/pkg/http_range"
 	"github.com/alist-org/alist/v3/pkg/utils"
@@ -79,6 +80,9 @@ func Proxy(w http.ResponseWriter, r *http.Request, link *model.Link, file model.
 		defer res.Body.Close()
 
 		maps.Copy(w.Header(), res.Header)
+		if r.URL.Query().Get("type") == "preview" {
+			w.Header().Set("Content-Disposition", fmt.Sprintf(`inline; filename="%s"; filename*=UTF-8''%s`, file.GetName(), url.PathEscape(file.GetName())))
+		}
 		w.WriteHeader(res.StatusCode)
 		if r.Method == http.MethodHead {
 			return nil
@@ -127,6 +131,14 @@ func ProxyRange(link *model.Link, size int64) {
 	} else if link.RangeReadCloser == NoProxyRange {
 		link.RangeReadCloser = nil
 	}
+}
+
+func BuildDownProxyURL(downProxyURL, path string, useSign bool) string {
+	base := strings.Split(downProxyURL, "\n")[0]
+	if useSign {
+		return fmt.Sprintf("%s%s?sign=%s", base, utils.EncodePath(path, true), sign.Sign(path))
+	}
+	return fmt.Sprintf("%s%s", base, utils.EncodePath(path, true))
 }
 
 type InterceptResponseWriter struct {
